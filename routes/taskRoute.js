@@ -63,13 +63,16 @@ router.delete("/delete/:id", AuthMiddleware, async (req, res) => {
 
 router.post('/assigntask', AuthMiddleware, async (req, res) => {
     const { taskId, userId } = req.body;
+    const io = req.app.get('io');
     try {
         const task = await Task.findById(taskId);
         if (!task) {
             return res.status(404).json({ message: "Task not found" });
         }
-        task.assignedTo = mongoose.Types.ObjectId(userId);
+        // Let Mongoose cast the string to ObjectId automatically
+        task.assignedTo = userId;
         await task.save();
+        io.emit('taskAssigned', { taskId: task._id, userId: userId , task: task});
         res.status(200).json({ message: "Task assigned successfully", task });
     } catch (error) {
         res.status(500).json({ message: "Error assigning task", error: error.message });
